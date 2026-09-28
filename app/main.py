@@ -1,7 +1,21 @@
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
-tasks: list[dict] = []
+DATA_FILE = Path(__file__).parent / "tasks.json"
+
+def load_tasks():
+    try:
+        return json.loads(DATA_FILE.read_text())
+    except FileNotFoundError:
+        return []
+
+def save_tasks():
+    tmp = DATA_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(tasks))
+    tmp.replace(DATA_FILE)
+
+tasks: list[dict] = load_tasks()
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status, payload):
@@ -37,6 +51,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         task = {"id": len(tasks) + 1, "title": data["title"], "status": "todo"}
         tasks.append(task)
+        save_tasks()
         self._send(201, task)
 
     def do_PATCH(self):
@@ -63,6 +78,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(422, {"detail": "status must be todo, doing or done"})
             return
         task["status"] = data["status"]
+        save_tasks()
         self._send(200, task)
 
     def log_message(self, *args):
