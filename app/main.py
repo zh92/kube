@@ -1,8 +1,10 @@
 import json
+import os 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-DATA_FILE = Path(__file__).parent / "tasks.json"
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
+DATA_FILE = DATA_DIR / "tasks.json"
 
 def load_tasks():
     try:
@@ -11,6 +13,7 @@ def load_tasks():
         return []
 
 def save_tasks():
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = DATA_FILE.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(tasks))
     tmp.replace(DATA_FILE)
@@ -85,6 +88,6 @@ class Handler(BaseHTTPRequestHandler):
         pass  # quiet for now; structured logs get their own step later
 
 if __name__ == "__main__":
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), Handler)
-    print("serving on http://127.0.0.1:8000")
+    server = ThreadingHTTPServer(("0.0.0.0", 8000), Handler)
+    print("serving on http://0.0.0.0:8000")
     server.serve_forever()
